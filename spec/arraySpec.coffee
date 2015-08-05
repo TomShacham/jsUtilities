@@ -1,4 +1,4 @@
-require '../array'
+require '../src/array'
 
 describe "array", ->
   it "appends shit", ->
