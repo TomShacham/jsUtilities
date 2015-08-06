@@ -41,6 +41,18 @@
       }
     };
 
+    Selection.prototype.html = function(html) {
+      if (html) {
+        return this.map(function(el) {
+          return el.innerHTML = html;
+        });
+      } else {
+        return this.map(function(el) {
+          return el.innerHTML;
+        });
+      }
+    };
+
     return Selection;
 
   })(Array);
@@ -67,6 +79,92 @@
 
   window.onLoad = function(fun) {
     return document.on("DOMContentLoaded", fun);
+  };
+
+  window.http = function(request) {
+    var handler, headers, j, len, name;
+    handler = new XMLHttpRequest();
+    handler.open(request.method, request.url, true);
+    headers = request.headers || {};
+    for (j = 0, len = headers.length; j < len; j++) {
+      name = headers[j];
+      handler.setRequestHeader(name, headers[name]);
+    }
+    return function(responseHandler) {
+      handler.addEventListener("readystatechange", function() {
+        var entity;
+        if (handler.readystate === 4) {
+          headers = handler.getAllResponseHeaders().split("\n").reduce(function(accumulator, header) {
+            var pair;
+            pair = header.split(": ");
+            accumulator[pair[0]] = pair[1];
+            return accumulator;
+          }, {});
+          entity = {
+            toXml: function() {
+              return handler.responseXML;
+            },
+            toText: function() {
+              return handler.responseText;
+            },
+            toJson: function() {
+              return JSON.parse(handler.responseText);
+            }
+          };
+          return responseHandler({
+            status: handler.status,
+            headers: headers,
+            entity: entity
+          });
+        }
+      });
+      handler.send(request.entity);
+      return function() {
+        return handler.abort();
+      };
+    };
+  };
+
+  window.http2 = function(request) {
+    var handler, headers, j, len, name;
+    handler = new XMLHttpRequest();
+    handler.open(request.method, request.url, true);
+    headers = request.headers || {};
+    for (j = 0, len = headers.length; j < len; j++) {
+      name = headers[j];
+      handler.setRequestHeader(name, headers[name]);
+    }
+    return function(responseHandler) {
+      handler.addEventListener("readystatechange", function() {
+        if (handler.readystate === 4) {
+          return responseHandler({
+            status: handler.status,
+            headers: handler.getAllResponseHeaders().split("\n").reduce(function(headers, header) {
+              var pair;
+              pair = header.split(": ");
+              headers[pair[0]] = pair[1];
+              return headers;
+            }, {}, {
+              entity: {
+                toXml: function() {
+                  return handler.responseXML;
+                },
+                toText: function() {
+                  return handler.responseText;
+                },
+                toJson: function() {
+                  return JSON.parse(handler.responseText);
+                }
+              }
+            })
+          });
+        }
+      });
+      handler.send(request.entity);
+      return function() {
+        return handler.abort();
+      };
+    };
   };
 
 }).call(this);

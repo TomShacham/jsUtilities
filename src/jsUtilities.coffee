@@ -31,3 +31,61 @@ window.get = (id) -> document.getElementById(id)
 
 window.onLoad = (fun) ->
   document.on("DOMContentLoaded", fun)
+
+window.http = (request) ->
+  handler = new XMLHttpRequest()
+  handler.open request.method, request.url, true
+  headers = request.headers || {}
+  for name in headers
+    handler.setRequestHeader name, headers[name]
+  (responseHandler) ->
+    handler.addEventListener "readystatechange", ->
+      if handler.readystate is 4
+        headers = handler.getAllResponseHeaders()
+          .split("\n").reduce (accumulator, header) ->
+            pair = header.split(": ")
+            accumulator[pair[0]] = pair[1]
+            accumulator
+          , {}
+        entity = {
+          toXml:  () -> handler.responseXML,
+          toText: () -> handler.responseText,
+          toJson: () -> JSON.parse handler.responseText
+        }
+        responseHandler {status: handler.status, headers: headers, entity: entity}
+    handler.send request.entity
+    () -> handler.abort()
+
+window.http2 = (request) ->
+  handler = new XMLHttpRequest()
+  handler.open request.method, request.url, true
+  headers = request.headers || {}
+  for name in headers
+    handler.setRequestHeader name, headers[name]
+  (responseHandler) ->
+    handler.addEventListener "readystatechange", ->
+      if handler.readystate is 4
+        responseHandler {
+          status: handler.status, 
+          headers: handler.getAllResponseHeaders()
+            .split("\n").reduce (headers, header) ->
+              pair = header.split(": ")
+              headers[pair[0]] = pair[1]
+              headers
+            , {},
+          entity: {
+            toXml:  () -> handler.responseXML,
+            toText: () -> handler.responseText,
+            toJson: () -> JSON.parse handler.responseText
+          }
+        }
+    handler.send request.entity
+    () -> handler.abort()
+
+
+
+
+
+
+
+
